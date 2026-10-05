@@ -20,7 +20,7 @@ from fingerprint import source_fingerprint
 def require_repo(root: Path) -> str:
     toplevel = Path(git(["rev-parse", "--show-toplevel"], root)).resolve()
     if toplevel != root.resolve():
-        raise RuntimeError("The packaged VAE policy must run at its Git repository root. For a defuss monorepo integration, merge the policy at that root; see docs/MIGRATION.md. Refusing a silently wrong diff scope.")
+        raise RuntimeError("The packaged VAE policy must run at its Git repository root. For a defuss monorepo integration, merge the policy at that root as described in AGENTS.md. Refusing a silently wrong diff scope.")
     try:
         return git(["rev-parse", "HEAD"], root)
     except RuntimeError:

@@ -14,3 +14,9 @@
 2026-10-05T23:18:23Z s=2d803ce9 FINDING tests/browser/suite.mjs:test registration learn=memory: .agents/MEMORY.md: tests run one fresh, fully loaded document per test
 2026-10-05T23:18:23Z s=2d803ce9 FINDING tools/browser.mjs + tests/browser/suite.mjs (WebKit) learn=memory: .agents/MEMORY.md WebKit History rate-limit line; webkit e2e run is the check
 2026-10-05T23:18:23Z s=2d803ce9 FINDING src/matcher.ts:compileRoutes control-character check learn=test: tests/router.test.mjs reject ambiguous pattern cases
+2026-10-05T23:19:48Z s=2d803ce9 DONE fp=a4b410f1cd92 cov=92.3% paths=docs/MIGRATION.md,tools/agent.py
+2026-10-05T23:19:48Z s=2d803ce9 FINDING tools/browser.mjs:per-test run loop learn=none: a permanently hanging test would be a fake failure in the suite; demonstrated once by probe, bound is TEST_TIMEOUT_MS in tools/browser.mjs
+2026-10-05T23:19:48Z s=2d803ce9 FINDING tools/fingerprint.py:FILES learn=test: tests/test_engineering.py::test_fingerprint_tracks_shipped_package_documents
+2026-10-05T23:19:48Z s=2d803ce9 FINDING tests/browser/suite.mjs:test registration learn=memory: .agents/MEMORY.md: tests run one fresh, fully loaded document per test
+2026-10-05T23:19:48Z s=2d803ce9 FINDING tools/browser.mjs + tests/browser/suite.mjs (WebKit) learn=memory: .agents/MEMORY.md WebKit History rate-limit line; webkit e2e run is the check
+2026-10-05T23:19:48Z s=2d803ce9 FINDING src/matcher.ts:compileRoutes control-character check learn=test: tests/router.test.mjs reject ambiguous pattern cases
