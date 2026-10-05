@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Defuss routing laboratory</title><link rel="stylesheet" href="./styles.css"></head>
+<body><header><p class="eyebrow">DEFUSS / ROUTING</p><h1>A URL is application state.</h1>
+<p>A persistent shell, isolated route resources, and no framework runtime.</p>
+<nav aria-label="Main"><a data-route-id="home" data-router-link>Overview</a><a data-route-id="project" data-record="42" data-router-link>Project 42</a><a data-route-id="project" data-record="73" data-router-link>Project 73</a></nav></header>
+<div class="toolbar"><button id="back" type="button">Back</button><button id="forward" type="button">Forward</button><button id="rerender" type="button">Re-render</button><button id="replace" type="button">Replace with overview</button></div>
+<main id="route-view" tabindex="-1" aria-live="polite"></main>
+<aside aria-label="Routing state"><h2>Observable routing state</h2><pre id="state"></pre><p id="status" role="status"></p></aside>
+<footer>Local browser assets only; no CDN or network access.</footer>
+<script type="module" src="./app.js"></script></body></html>

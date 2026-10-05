@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "repository": "https://github.com/kyr0/defuss-vae.git",
+  "commit": "e73ba9f83da0c8d1b34a098cfbfc30c463121b6b",
+  "license": "MIT",
+  "plugin": "plugin",
+  "scripts": {
+    "plugin/scripts/vae.py": "69758e18b49a71a8aa0cea95c7f0f3e53f410d86",
+    "plugin/scripts/vae_gate.py": "eacb637b3aa9151998e9c663ce517b9575a1a46a",
+    "plugin/scripts/vae_hooks.py": "d8d00da5a37b4ed5322b747e40edc34bc9aff751",
+    "plugin/scripts/vae_project.py": "44b7ab678bf974ec21759d7ff77a87eaa113aca5",
+    "plugin/scripts/vae_repo.py": "2b5d23bebcbd38d2b7c71ccd2df57bc5e1976f3b",
+    "plugin/scripts/vae_state.py": "e148b4ed2b6701f66def02f7d22aac09de15b8f9",
+    "plugin/scripts/vae_verify.py": "8323dc84c405ac27a709a31164cc3bc152f98667"
+  }
+}
