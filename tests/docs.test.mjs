@@ -40,3 +40,15 @@ test('the API reference explains every result status, cause and error code', () 
   assert.ok(codes.length >= 16);
   assert.deepEqual(missing(codes, (code) => `<td class="table-cell"><code>${code}</code></td>`), [], 'add these codes to the error table');
 });
+
+// docs/index.html is the authoritative text; the README repeats its load-bearing claims and must not drift from them.
+test('the README repeats the page\'s outcome descriptions, feature claims and sizes', async () => {
+  const readme = (await text('README.md')).replace(/[`*_]/g, '');
+  const plain = (fragment) => fragment.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').trim();
+  const outcomes = [...page.matchAll(/data-status="\w+">\w+<\/span><p>(.*?)<\/p>/gs)].map((m) => plain(m[1]));
+  assert.equal(outcomes.length, 6);
+  assert.deepEqual(outcomes.filter((sentence) => !readme.includes(sentence)), [], 'copy these outcome descriptions from docs/index.html into README.md');
+  const sizes = [...page.matchAll(/<span class="mk-stat-value">(.*?)<\/span>/gs)].map((m) => plain(m[1]).split(' ')[0]).filter((v) => v.includes(','));
+  assert.ok(sizes.length >= 1);
+  assert.deepEqual(sizes.filter((size) => !readme.includes(size)), [], 'the README sizes differ from the page');
+});
