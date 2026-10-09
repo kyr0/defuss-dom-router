@@ -164,7 +164,7 @@ const views = {
       section.append(h('p', { class: 'pg-row' }, jump,
         h('span', { class: 'pg-muted', text: 'Only the anchor changes: the router skips prepare() and scrolls.' })));
       const items = ['Route table drafted', 'Hash mode added', 'Guards run before history writes', 'Blocked Back/Forward corrected',
-        'Superseded intents abandoned', 'Commits serialized', 'Anchor scrolling after commit', 'Scroll restored on Back', 'Released 0.1.0'];
+        'Superseded intents abandoned', 'Commits serialized', 'Anchor scrolling after commit', 'Scroll restored on Back', 'Released 0.1.1'];
       section.append(h('ol', { class: 'pg-timeline' }, items.map((title, index) =>
         h('li', null, h('h3', { id: `event-${index + 1}`, text: `Event ${index + 1}: ${title}` }),
           h('p', { class: 'pg-muted', text: `${index + 1} day${index ? 's' : ''} after kickoff.` })))));

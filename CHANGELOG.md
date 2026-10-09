@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.1
 
 - Website at https://dom-router.defuss.org (`docs/`, GitHub Pages): live demo app with router devtools, a `resolve()`/`href()` explorer, the API reference, install instructions and a defuss-vae section.
 - README restyled after defuss-morph's, following the website's wording, with a citation.

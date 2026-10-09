@@ -226,7 +226,7 @@ The router can only correct a blocked Back/Forward within entries it wrote itsel
 | `index.d.ts` | 7,785 B | | | TypeScript declarations (`index.d.cts` is the CommonJS twin) |
 <!-- bundle-size:end -->
 
-Sizes are `make metrics` output for the 0.1.0 build. `make lint` fails when `index.js` imports another module or grows past 14,000 bytes gzip.
+Sizes are `make metrics` output for the 0.1.1 build. `make lint` fails when `index.js` imports another module or grows past 14,000 bytes gzip.
 
 ## Vibe coding
 
@@ -287,7 +287,7 @@ If you use defuss-dom-router in research or want to reference it, cite it as:
   affiliation  = {Independent Researcher},
   title        = {defuss-dom-router: a dependency-free client router with awaitable navigation},
   year         = {2026},
-  version      = {0.1.0},
+  version      = {0.1.1},
   howpublished = {\url{https://github.com/kyr0/defuss-dom-router}},
   note         = {Standalone package of the defuss client router, MIT License}
 }

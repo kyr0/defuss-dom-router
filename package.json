@@ -1,6 +1,6 @@
 {
   "name": "defuss-dom-router",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Dependency-free DOM router with awaitable navigation, isolated history and injectable rendering.",
   "license": "MIT",
   "author": "Aron Homberg",
