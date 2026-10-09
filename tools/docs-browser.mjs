@@ -117,7 +117,7 @@ async function landing(page, steps, report) {
   await until(page, () => getComputedStyle(document.querySelector('#vae-install pre[data-tab="claude"]')).display === 'block'
     && getComputedStyle(document.querySelector('#vae-install pre[data-tab="skills"]')).display === 'none', null, 'the Claude Code install tab');
   const ctaLinks = await page.$$eval('.ddr-consult .mk-cta-desc a', (links) => links.map((link) => link.getAttribute('href')));
-  assert(JSON.stringify(ctaLinks) === JSON.stringify(['https://github.com/kyr0/defuss-vae', 'https://vae.defuss.org']), `the CTA text links: ${ctaLinks}`);
+  assert(JSON.stringify(ctaLinks) === JSON.stringify(['https://github.com/kyr0/defuss-vae', 'https://vae.defuss.org/']), `the CTA text links: ${ctaLinks}`);
   assert(await page.getAttribute('.ddr-consult .btn', 'href') === 'https://www.linkedin.com/in/aronhomberg/', 'the CTA button goes to LinkedIn');
   await page.click('#copy-prompt');
   await until(page, () => document.getElementById('copy-prompt-status').textContent !== '', null, 'the prompt copy status');
