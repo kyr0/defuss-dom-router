@@ -1,6 +1,6 @@
 """Required web checks fail closed: lint, tests, merged bundle coverage and the browser suite."""
 CONFIG = {
-    "coverage_min": 60,
+    "coverage_min": 90,
     "lint_command": None, "test_command": None, "coverage_command": None,
     "integration_commands": [], "e2e_commands": [],
     "timeout_s": 240, "layout": True, "toolchain": True,

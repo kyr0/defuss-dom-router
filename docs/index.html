@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>defuss-dom-router · client routing that tells you what happened</title>
+  <meta name="description" content="A dependency-free client router for plain DOM, defuss-query, defuss-morph or any renderer you inject: awaitable navigation results, guards before history writes, healing Back/Forward vetoes and one self-contained 8.9 kB gzip ESM file.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='6' cy='19' r='3'/%3E%3Cpath d='M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15'/%3E%3Ccircle cx='18' cy='5' r='3'/%3E%3C/svg%3E">
+  <script>
+    // Before paint, before df$ exists (defuss-shadcn Dark Mode guide): the saved choice, else the OS default.
+    let saved = '';
+    try {
+      const raw = JSON.parse(localStorage.getItem('defuss-shadcn-theme'));
+      saved = raw && raw.format === 'defuss-store' ? raw.value : raw;
+    } catch {}
+    if (saved === 'dark' || (!saved && matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.style.colorScheme = 'dark';
+    }
+  </script>
+  <!-- defuss-shadcn from jsDelivr at an exact release, pinned by Subresource Integrity. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/defuss-shadcn@0.9.8/dist/components/core.min.css" integrity="sha384-XTkN5+CRRKO70LZ4OcV6O+kj6BY5lxdsRQ02oMz3kDCm9kd4B+16jbojkbgrbL0e" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/defuss-shadcn@0.9.8/dist/theme/utils/shapes.min.css" integrity="sha384-Ql86bF5zW5vFVk35X7GH6sUNZRTsmU93YO1iJBw/sYwgnlr4sgF+hBn1S5vDPI2G" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/defuss-shadcn@0.9.8/dist/components/all.min.css" integrity="sha384-3N21mZZQYTo6BWRxl629QHRrstw0IXVKRonDLdRbrYlODgFskMA/kODfnDX/gNk4" crossorigin="anonymous">
+  <link rel="stylesheet" href="assets/status.css">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<svg class="sr-only" aria-hidden="true">
+  <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7"/></symbol>
+  <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M12 5v14m7-7-7 7-7-7"/></symbol>
+  <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7M12 19V5"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M7 7h10v10M7 17 17 7"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-forward" viewBox="0 0 24 24"><path d="m13 19 9-7-9-7zM2 19l9-7-9-7z"/></symbol>
+  <symbol id="i-brush" viewBox="0 0 24 24"><path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"/><path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02z"/></symbol>
+  <symbol id="i-feather" viewBox="0 0 24 24"><path d="M12.67 19a2 2 0 0 0 1.416-.588l6.154-6.172a6 6 0 0 0-8.49-8.49L5.586 9.914A2 2 0 0 0 5 11.328V18a1 1 0 0 0 1 1z"/><path d="M16 8 2 22M17.5 15H9"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><path d="m4 17 6-6-6-6m8 14h8"/></symbol>
+  <symbol id="i-bot" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2m16 0h2m-7-1v2m-6-2v2"/></symbol>
+  <symbol id="i-package" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12m0 0 8.7-5M12 12 3.3 7"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M10 12.5 8 15l2 2.5m4-5 2 2.5-2 2.5M14 2v4a2 2 0 0 0 2 2h4"/><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></symbol>
+  <symbol id="i-reload" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></symbol>
+  <symbol id="i-maximize" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12.83 2.18 8.58 3.9a1 1 0 0 1 0 1.83l-8.58 3.9a2 2 0 0 1-1.66 0L2.6 7.91a1 1 0 0 1 0-1.83l8.58-3.9a2 2 0 0 1 1.66 0Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65M22 12.65l-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></symbol>
+  <symbol id="i-linkedin" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+</svg>
+
+<div id="top" class="ddr-page">
+  <header class="mk-header" data-variant="floating">
+    <div class="mk-header-inner">
+      <a href="#top" class="mk-header-brand"><svg class="ddr-icon ddr-brand-icon" aria-hidden="true"><use href="#i-logo"/></svg><span class="mk-header-name">defuss-dom-router</span></a>
+      <nav class="mk-header-nav" aria-label="Main">
+        <ul class="nav-menu-list">
+          <li class="nav-menu-item"><a class="nav-menu-link" href="#demo">Demo</a></li>
+          <li class="nav-menu-item"><a class="nav-menu-link" href="#how">How it works</a></li>
+          <li class="nav-menu-item"><a class="nav-menu-link" href="#api">API</a></li>
+          <li class="nav-menu-item"><a class="nav-menu-link" href="#install">Install</a></li>
+        </ul>
+      </nav>
+      <div class="mk-header-actions">
+        <label class="swap" data-variant="rotate" data-size="sm">
+          <input type="checkbox" id="theme-toggle" aria-label="Dark mode">
+          <span class="swap-on"><svg class="ddr-icon" aria-hidden="true"><use href="#i-moon"/></svg></span>
+          <span class="swap-off"><svg class="ddr-icon" aria-hidden="true"><use href="#i-sun"/></svg></span>
+        </label>
+        <a class="btn mk-header-wide" data-variant="ghost" data-size="icon" href="https://github.com/kyr0/defuss-dom-router" aria-label="defuss-dom-router on GitHub"><svg class="ddr-icon" aria-hidden="true"><use href="#i-github"/></svg></a>
+        <a class="btn mk-header-wide" data-size="sm" href="#install">Install</a>
+        <button type="button" class="btn mk-header-menu" data-variant="ghost" data-size="icon" data-sheet-trigger="ddr-menu" aria-haspopup="dialog" aria-label="Open menu"><svg class="ddr-icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
+      </div>
+    </div>
+    <dialog id="ddr-menu" class="sheet" data-side="right" role="dialog" aria-modal="true" aria-labelledby="ddr-menu-title">
+      <div class="sheet-content">
+        <div class="sheet-header">
+          <h2 class="sheet-title" id="ddr-menu-title">defuss-dom-router</h2>
+        </div>
+        <div class="sheet-body">
+          <p class="mk-header-sheet-label">This page</p>
+          <ul class="mk-header-sheet-nav">
+            <li><a href="#demo" data-sheet-close>Demo <small>A routed app with devtools</small></a></li>
+            <li><a href="#how" data-sheet-close>How it works</a></li>
+            <li><a href="#resolve" data-sheet-close>resolve() explorer</a></li>
+            <li><a href="#api" data-sheet-close>API</a></li>
+            <li><a href="#install" data-sheet-close>Install</a></li>
+          </ul>
+        </div>
+        <div class="sheet-footer mk-header-sheet-actions">
+          <a class="btn" data-variant="outline" href="https://github.com/kyr0/defuss-dom-router"><svg class="ddr-icon" aria-hidden="true"><use href="#i-github"/></svg>GitHub</a>
+        </div>
+      </div>
+    </dialog>
+  </header>
+
+  <main class="ddr-main">
+
+  <section class="parallax" aria-label="Introduction" style="padding-block:clamp(4rem, 10vw, 7rem) 1rem">
+    <div class="parallax-layer" data-depth="far" aria-hidden="true">
+      <div class="pattern-grid" style="width:100%;height:100%;--shape-ink:color-mix(in oklch, var(--foreground) 7%, transparent);--shape-pattern:32px;mask-image:radial-gradient(55% 60% at 50% 45%, #000, transparent 75%)"></div>
+    </div>
+    <div class="parallax-layer" data-depth="mid" aria-hidden="true" style="--parallax-speed:22%;mask-image:linear-gradient(#000 55%, transparent 92%)">
+      <div class="corner-blob" style="position:absolute;inset-block-start:10%;inset-inline-start:8%;width:min(22rem, 45%);aspect-ratio:1;background:color-mix(in oklch, var(--chart-1) 45%, transparent);filter:blur(60px);opacity:.55"></div>
+      <div class="corner-blob-3" style="position:absolute;inset-block-start:28%;inset-inline-end:6%;width:min(18rem, 40%);aspect-ratio:1;background:color-mix(in oklch, var(--chart-3) 40%, transparent);filter:blur(60px);opacity:.5"></div>
+    </div>
+    <div class="parallax-content">
+      <section class="mk-hero" style="width:100%">
+        <div class="mk-hero-copy">
+          <a class="mk-hero-pill" href="#numbers"><span class="badge" data-variant="default" data-size="sm">v0.1.0</span>Zero dependencies · 8.9&nbsp;kB gzip · any renderer <svg class="ddr-icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+          <h1 class="mk-hero-title">Client routing with <strong>great flexibility</strong> and <strong>observability</strong> that</h1>
+          <p class="ddr-flip"><span class="text-rotate"><span>
+              <span class="ddr-accent">is awaitable</span>
+              <span class="ddr-accent">guards before history writes</span>
+              <span class="ddr-accent">has back/forward vetoes that heal</span>
+              <span class="ddr-accent">ensures the latest navigation wins</span>
+              <span class="ddr-accent">works with any renderer you inject</span>
+          </span></span></p>
+          <p class="mk-hero-desc"><code>defuss-dom-router</code> turns URLs into immutable route requests and orders navigations against the browser's <strong>real History API</strong>. Your <code>prepare()</code> and <code>commit()</code> callbacks do the rendering, with plain DOM, <code>defuss-query</code>, <code>defuss-morph</code> or any other renderer. Every <code>navigate()</code> resolves to <strong>exactly one outcome</strong>, so you never have to guess whether the screen changed.</p>
+          <div class="mk-hero-actions">
+            <a class="btn" data-size="lg" href="#demo">Try the live demo<svg class="ddr-icon" aria-hidden="true"><use href="#i-arrow-down"/></svg></a>
+            <a class="btn" data-variant="outline" data-size="lg" href="#api">Read the API</a>
+          </div>
+          <p class="mk-hero-note">Built by <a href="https://www.linkedin.com/in/aronhomberg/" target="_blank" rel="noopener">Aron Homberg (kyr0)<svg class="ddr-icon ddr-ext" aria-hidden="true"><use href="#i-external"/></svg><span class="sr-only"> (opens in a new tab)</span></a> – Open Source (<a href="https://github.com/kyr0/defuss-dom-router/blob/main/LICENSE" target="_blank" rel="noopener">MIT<svg class="ddr-icon ddr-ext" aria-hidden="true"><use href="#i-external"/></svg><span class="sr-only"> (opens in a new tab)</span></a>)</p>
+        </div>
+      </section>
+      <div class="ddr-intro" id="intro">
+        <section class="ddr-intro-item" aria-labelledby="intro-1">
+          <span class="ddr-intro-icon" aria-hidden="true"><svg class="ddr-icon"><use href="#i-check"/></svg></span>
+          <h3 id="intro-1">Awaitable outcomes</h3>
+          <p><code>await router.navigate()</code> resolves to <strong>committed</strong>, <strong>unchanged</strong>, <strong>blocked</strong>, <strong>superseded</strong>, <strong>rejected</strong> or <strong>error</strong>. Failures settle as values, never as unhandled rejections.</p>
+        </section>
+        <section class="ddr-intro-item" aria-labelledby="intro-2">
+          <span class="ddr-intro-icon" aria-hidden="true"><svg class="ddr-icon"><use href="#i-shield"/></svg></span>
+          <h3 id="intro-2">Guards before history</h3>
+          <p>Async guards and <code>beforeLeave</code> run <strong>before</strong> <code>pushState</code>, so a veto leaves history untouched. A vetoed Back or Forward is walked back with <code>history.go()</code>, and the forward stack survives.</p>
+        </section>
+        <section class="ddr-intro-item" aria-labelledby="intro-3">
+          <span class="ddr-intro-icon" aria-hidden="true"><svg class="ddr-icon"><use href="#i-forward"/></svg></span>
+          <h3 id="intro-3">The latest navigation wins</h3>
+          <p>A newer navigation abandons one that is still preparing and disposes its view before anything changes on screen. Commits are <strong>serialized</strong> and never interleave.</p>
+        </section>
+        <section class="ddr-intro-item" aria-labelledby="intro-4">
+          <span class="ddr-intro-icon" aria-hidden="true"><svg class="ddr-icon"><use href="#i-brush"/></svg></span>
+          <h3 id="intro-4">Bring your own renderer</h3>
+          <p><code>prepare()</code> builds the next view detached from the page, <code>commit()</code> puts it on screen. Native DOM, defuss-query, defuss-morph or shadcn's <code>df$</code>: the router imports <strong>none of them</strong>.</p>
+        </section>
+        <section class="ddr-intro-item" aria-labelledby="intro-5">
+          <span class="ddr-intro-icon" aria-hidden="true"><svg class="ddr-icon"><use href="#i-feather"/></svg></span>
+          <h3 id="intro-5">One file, zero dependencies</h3>
+          <p>One self-contained ESM file of <strong>32.6&nbsp;kB</strong> (<strong>8.9&nbsp;kB gzip</strong>) that imports nothing, so it runs as a plain <code>&lt;script type="module"&gt;</code>. Importing it starts nothing and attaches no listener.</p>
+        </section>
+        <section class="ddr-intro-item" aria-labelledby="intro-6">
+          <span class="ddr-intro-icon" aria-hidden="true"><svg class="ddr-icon"><use href="#i-lock"/></svg></span>
+          <h3 id="intro-6">Strict by default</h3>
+          <p>Only credential-free HTTP(S) URLs on your origin and inside <code>basePath</code> are routed. Navigation state must be finite JSON. Diagnostics carry a code and fixed text, never the URL.</p>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <div class="ddr-flythrough">
+    <section class="parallax" data-sticky style="--parallax-length:2" aria-label="Resolve, prepare, commit">
+      <div class="parallax-stage" style="background:radial-gradient(circle at 50% 50%, color-mix(in oklch, var(--chart-3) 55%, #05060f), #05060f 72%);color:#fff;border-radius:var(--radius-xl)">
+        <div class="parallax-layer" data-motion="zoom fade" style="--parallax-scale:6"><svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><circle cx="200" cy="200" r="60" fill="none" stroke="#7c8cff" stroke-width="1.5" opacity=".7"/><circle cx="200" cy="200" r="110" fill="none" stroke="#b07cff" stroke-width="1" opacity=".5"/><circle cx="200" cy="200" r="170" fill="none" stroke="#7cf0ff" stroke-width=".8" opacity=".35"/></svg></div>
+        <div class="parallax-layer" data-motion="pass" style="animation-range:contain 0% contain 40%;z-index:1"><p class="ddr-fly-word">Navigate.</p></div>
+        <div class="parallax-layer" data-motion="pass" style="animation-range:contain 30% contain 70%;z-index:2"><p class="ddr-fly-word">Guard.</p></div>
+        <div class="parallax-layer" data-motion="pass" style="animation-range:contain 60% contain 100%;z-index:3"><p class="ddr-fly-word">Commit.</p></div>
+        <div class="parallax-layer" data-motion="spin" style="--parallax-turn:180deg;--parallax-speed:0%;z-index:-1;opacity:.25"><svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><g fill="none" stroke="#fff" stroke-width=".6"><path d="M200 200 460 200M200 200 425.2 330M200 200 330 425.2M200 200 200 460M200 200 70 425.2M200 200-25.2 330M200 200-60 200M200 200-25.2 70M200 200 70-25.2M200 200 200-60M200 200 330-25.2M200 200 425.2 70"/></g></svg></div>
+      </div>
+    </section>
+  </div>
+
+  <section id="demo" class="container ddr-section parallax-reveal" data-reveal="zoom" aria-labelledby="demo-title">
+    <header class="mk-section-header" data-align="center">
+      <div class="mk-section-header-copy">
+        <span class="mk-section-header-eyebrow">Live demo</span>
+        <h2 class="mk-section-header-title" id="demo-title">🧭 A routed app, with its devtools open</h2>
+        <p class="mk-section-header-desc">Atlas is a small project tracker routed by the shipped bundle in hash mode. It runs in a frame, so its router owns the frame's Window and the real History API, not this page's. Click around, edit a title and leave, race two navigations or press Back. The panel on the right is built only from the public API: <code>subscribe()</code>, a guard and the callbacks.</p>
+      </div>
+    </header>
+    <div class="ddr-window">
+      <div class="ddr-frame">
+        <figure class="iframe" data-fit="container" data-variant="bare" id="playground">
+          <iframe class="iframe-frame" src="demo/" title="Atlas, a demo app routed by defuss-dom-router"></iframe>
+        </figure>
+      </div>
+      <div class="ddr-window-foot">
+        <p class="ddr-window-note"><svg class="ddr-icon" aria-hidden="true"><use href="#i-history"/></svg>The frame shares this tab's session history, so your browser's own Back button drives the demo too.</p>
+        <div class="ddr-window-actions">
+          <button type="button" class="btn" data-variant="ghost" data-size="sm" id="playground-restart"><svg class="ddr-icon" aria-hidden="true"><use href="#i-reload"/></svg>Restart</button>
+          <a class="btn" data-variant="outline" data-size="sm" href="demo/" target="_blank" rel="noopener"><svg class="ddr-icon" aria-hidden="true"><use href="#i-maximize"/></svg>Open full screen<span class="sr-only"> (opens in a new tab)</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" class="container ddr-section parallax-reveal" aria-labelledby="how-title">
+    <section class="mk-features" style="width:100%">
+      <div class="mk-features-head">
+        <span class="mk-features-eyebrow">How it works</span>
+        <h2 class="mk-features-title" id="how-title">💡 One coordinator orders every navigation</h2>
+        <p class="mk-features-desc">URL parsing and matching are pure functions. One coordinator orders the intents, runs the guards and your <code>prepare()</code>, writes or adopts the history entry and only then calls <code>commit()</code>. Every entry the router writes carries a session ID and an index, which is how a vetoed Back or Forward finds its way back.</p>
+      </div>
+      <figure class="diagram ddr-flow" id="flow" data-type="flow" data-steps data-autoplay="400" aria-label="The path of one navigation through the router">
+        <div class="diagram-canvas" style="--cols:5">
+          <div class="diagram-node" data-node="in" data-shape="pill" style="--col:1;--row:1"><span class="diagram-node-name">navigate(), link or popstate</span></div>
+          <div class="diagram-node" data-node="resolve" style="--col:2;--row:1"><span class="diagram-node-eyebrow">Pure</span><span class="diagram-node-name">Resolve</span><span class="diagram-node-meta">URL → RouteRequest, JSON state copied</span></div>
+          <div class="diagram-node" data-node="abort" style="--col:3;--row:1"><span class="diagram-node-eyebrow">Ordering</span><span class="diagram-node-name">Abort the older intent</span><span class="diagram-node-meta">only while it is unlocked</span></div>
+          <div class="diagram-node" data-node="guards" data-shape="diamond" style="--col:4;--row:1"><span class="diagram-node-name">Guards allow?</span></div>
+          <div class="diagram-node" data-node="blocked" data-tone="warn" style="--col:5;--row:1"><span class="diagram-node-name">blocked</span><span class="diagram-node-meta">before-write: history untouched</span></div>
+          <div class="diagram-node" data-node="restore" data-tone="warn" style="--col:5;--row:2"><span class="diagram-node-name">history.go(delta)</span><span class="diagram-node-meta">owned-history-restored</span></div>
+          <div class="diagram-node" data-node="prepare" style="--col:4;--row:2"><span class="diagram-node-eyebrow">Your code</span><span class="diagram-node-name">prepare()</span><span class="diagram-node-meta">detached view · AbortSignal</span></div>
+          <div class="diagram-node" data-node="lock" style="--col:4;--row:3"><span class="diagram-node-eyebrow">Lock</span><span class="diagram-node-name">Write or adopt history</span><span class="diagram-node-meta">pushState / replaceState</span></div>
+          <div class="diagram-node" data-node="commit" data-tone="accent" style="--col:3;--row:3"><span class="diagram-node-eyebrow">Your code</span><span class="diagram-node-name">commit()</span><span class="diagram-node-meta">serialized, never interrupted</span></div>
+          <div class="diagram-node" data-node="effects" style="--col:2;--row:3"><span class="diagram-node-eyebrow">Effects</span><span class="diagram-node-name">Dispose · afterCommit · scroll</span><span class="diagram-node-meta">outgoing view released</span></div>
+          <div class="diagram-node" data-node="done" data-shape="pill" data-tone="ok" style="--col:1;--row:3"><span class="diagram-node-name">committed</span></div>
+        </div>
+        <ol class="diagram-edges">
+          <li class="diagram-edge" data-from="in" data-to="resolve"></li>
+          <li class="diagram-edge" data-from="resolve" data-to="abort"></li>
+          <li class="diagram-edge" data-from="abort" data-to="guards"></li>
+          <li class="diagram-edge" data-from="guards" data-to="blocked">false · navigate or link</li>
+          <li class="diagram-edge" data-from="guards" data-to="restore">false · Back/Forward</li>
+          <li class="diagram-edge" data-from="guards" data-to="prepare" data-tone="accent">allowed</li>
+          <li class="diagram-edge" data-from="prepare" data-to="lock"></li>
+          <li class="diagram-edge" data-from="lock" data-to="commit" data-tone="accent"></li>
+          <li class="diagram-edge" data-from="commit" data-to="effects"></li>
+          <li class="diagram-edge" data-from="effects" data-to="done"></li>
+        </ol>
+      </figure>
+    </section>
+
+    <div class="ddr-how-grid">
+      <div class="ddr-outcomes-wrap">
+        <h3 class="ddr-subtitle">Six outcomes, one per navigation</h3>
+        <ul class="ddr-outcomes">
+          <li class="ddr-outcome"><span class="ddr-status" data-status="committed">committed</span><p>History was written or adopted, and the prepared view, if any, committed.</p><code>{ status, intentId, request }</code></li>
+          <li class="ddr-outcome"><span class="ddr-status" data-status="unchanged">unchanged</span><p>Same href and state as the current entry, and no failed navigation to recover from. Nothing ran.</p><code>{ status, intentId, request }</code></li>
+          <li class="ddr-outcome"><span class="ddr-status" data-status="blocked">blocked</span><p>A global guard or <code>beforeLeave</code> returned exactly <code>false</code>. <code>veto</code> says whether history was untouched or restored.</p><code>{ …, veto: 'before-write' | 'owned-history-restored' }</code></li>
+          <li class="ddr-outcome"><span class="ddr-status" data-status="superseded">superseded</span><p>A newer navigation took over before this one locked. A view it had prepared was disposed, never shown.</p><code>{ status, intentId }</code></li>
+          <li class="ddr-outcome"><span class="ddr-status" data-status="rejected">rejected</span><p>Invalid input, or a router that is not started or was destroyed. Invalid input runs nothing and writes nothing.</p><code>{ status, intentId, error }</code></li>
+          <li class="ddr-outcome"><span class="ddr-status" data-status="error">error</span><p>A guard, <code>prepare()</code>, the history write, <code>commit()</code> or an effect failed.</p><code>{ …, error, commitStarted }</code></li>
+        </ul>
+      </div>
+      <div class="ddr-rules-wrap">
+        <h3 class="ddr-subtitle">Intent ordering</h3>
+        <ol class="mk-process-steps">
+          <li class="mk-process-step">
+            <span class="mk-process-step-number" aria-hidden="true">01</span>
+            <div class="mk-process-step-body">
+              <h4 class="mk-process-step-title">One active, one queued</h4>
+              <p class="mk-process-step-desc">At most one intent is active and at most one waits. Everything else has already settled.</p>
+            </div>
+          </li>
+          <li class="mk-process-step">
+            <span class="mk-process-step-number" aria-hidden="true">02</span>
+            <div class="mk-process-step-body">
+              <h4 class="mk-process-step-title">Newer aborts the unlocked</h4>
+              <p class="mk-process-step-desc">While the active intent guards or prepares, a new one aborts its <code>AbortSignal</code>: <strong>superseded</strong>, view disposed.</p>
+            </div>
+          </li>
+          <li class="mk-process-step" aria-current="step">
+            <span class="mk-process-step-number" aria-hidden="true">03</span>
+            <div class="mk-process-step-body">
+              <h4 class="mk-process-step-title">Locked work finishes</h4>
+              <p class="mk-process-step-desc">Once history is written and <code>commit()</code> started, new intents queue. A later one replaces the queued one, so the latest wins.</p>
+            </div>
+          </li>
+          <li class="mk-process-step">
+            <span class="mk-process-step-number" aria-hidden="true">04</span>
+            <div class="mk-process-step-body">
+              <h4 class="mk-process-step-title">Checked after every await</h4>
+              <p class="mk-process-step-desc">The coordinator re-checks that its intent is still current after each <code>await</code>, also when a subscriber navigates from inside a snapshot callback.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section id="resolve" class="container ddr-section parallax-reveal" aria-labelledby="resolve-title">
+    <header class="mk-section-header">
+      <div class="mk-section-header-copy">
+        <span class="mk-section-header-eyebrow">resolve() and href()</span>
+        <h2 class="mk-section-header-title" id="resolve-title">🔎 Resolve URLs without a Window</h2>
+        <p class="mk-section-header-desc">Resolution is pure: <code>resolve()</code> and <code>href()</code> work from <code>baseUrl</code> alone, on a server, in tests or right here. This explorer runs the same bundle on a router that is never started, so it owns no history.</p>
+      </div>
+    </header>
+    <div class="ddr-explorer card">
+      <div class="ddr-explorer-config">
+        <figure class="mk-code-block ddr-routes" data-variant="file">
+          <div class="mk-code-block-head"><span class="mk-code-block-file"><svg class="ddr-icon" aria-hidden="true"><use href="#i-file"/></svg>explorer.js</span></div>
+          <pre><code><span><span class="mk-code-block-k">const</span> router = createRouter({</span><span>  mode: <span class="mk-code-block-s" data-config="mode">'history'</span>,</span><span>  basePath: <span class="mk-code-block-s" data-config="basePath">'/app'</span>,</span><span>  baseUrl: <span class="mk-code-block-s" data-config="baseUrl">'https://example.com/app/'</span>,</span><span>  routes: [</span><span>    { id: <span class="mk-code-block-s">'home'</span>, path: <span class="mk-code-block-s">'/'</span> },</span><span>    { id: <span class="mk-code-block-s">'project'</span>, path: <span class="mk-code-block-s">'/projects/:id'</span> },</span><span>    { id: <span class="mk-code-block-s">'file'</span>, path: <span class="mk-code-block-s">'/files/:name.json'</span> },</span><span>    { id: <span class="mk-code-block-s">'api'</span>, path: <span class="mk-code-block-s">'/api/v:version/*'</span> },</span><span>    { id: <span class="mk-code-block-s">'docs'</span>, path: <span class="mk-code-block-s">'/docs/*'</span> },</span><span>    { id: <span class="mk-code-block-s">'missing'</span>, path: <span class="mk-code-block-s">'*'</span> },</span><span>  ],</span><span>}); <span class="mk-code-block-c">// never started: no Window, no history</span></span></code></pre>
+        </figure>
+        <div class="ddr-explorer-settings">
+          <div class="form-field">
+            <label class="label" for="ex-mode">mode</label>
+            <select class="select" id="ex-mode" data-size="sm">
+              <option value="history" selected>history</option>
+              <option value="hash">hash</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="label" for="ex-base">basePath</label>
+            <input class="input" id="ex-base" type="text" value="/app" spellcheck="false" autocomplete="off" data-size="sm">
+          </div>
+        </div>
+      </div>
+      <div class="ddr-explorer-run">
+        <form class="ddr-explorer-form" id="ex-form" autocomplete="off">
+          <label class="label" for="ex-href"><code>router.resolve(href)</code></label>
+          <div class="ddr-explorer-row">
+            <div class="input-group">
+              <svg class="input-group-icon ddr-icon" aria-hidden="true"><use href="#i-link"/></svg>
+              <input class="input" id="ex-href" type="text" spellcheck="false" autocapitalize="off" value="/app/projects/42?tab=timeline&amp;tab=files#event-7">
+            </div>
+            <button class="btn" type="submit">Resolve</button>
+          </div>
+        </form>
+        <div class="ddr-examples" role="group" aria-label="Examples">
+          <button type="button" class="btn" data-variant="secondary" data-size="xs" data-href="/app/projects/42?tab=timeline&amp;tab=files#event-7" data-mode="history">params, repeated query, anchor</button>
+          <button type="button" class="btn" data-variant="secondary" data-size="xs" data-href="/app/projects/a%2Fb" data-mode="history">encoded slash stays data</button>
+          <button type="button" class="btn" data-variant="secondary" data-size="xs" data-href="/app/files/report.json" data-mode="history">embedded param</button>
+          <button type="button" class="btn" data-variant="secondary" data-size="xs" data-href="/app/api/v2/users/7" data-mode="history">wildcard</button>
+          <button type="button" class="btn" data-variant="secondary" data-size="xs" data-href="projects/7" data-mode="history">relative to baseUrl</button>
+          <button type="button" class="btn" data-variant="secondary" data-size="xs" data-href="/app/nowhere" data-mode="history">catch-all</button>
+          <button type="button" class="btn" data-variant="secondary" data-size="xs" data-href="#/projects/42?tab=files#top" data-mode="hash">hash mode</button>
+          <button type="button" class="btn" data-variant="secondary" data-size="xs" data-href="/app/other.html#/projects/1" data-mode="hash">outside the shell</button>
+          <button type="button" class="btn" data-variant="secondary" data-size="xs" data-href="/elsewhere" data-mode="history">outside basePath</button>
+          <button type="button" class="btn" data-variant="secondary" data-size="xs" data-href="https://evil.example/app/" data-mode="history">other origin</button>
+          <button type="button" class="btn" data-variant="secondary" data-size="xs" data-href="https://user:pw@example.com/app/" data-mode="history">credentials</button>
+          <button type="button" class="btn" data-variant="secondary" data-size="xs" data-href="/app/projects/%E0%A4%A" data-mode="history">bad encoding</button>
+        </div>
+        <div class="ddr-result" id="ex-result" aria-live="polite"></div>
+
+        <hr class="separator">
+        <form class="ddr-explorer-form" id="hb-form" autocomplete="off">
+          <p class="label"><code>router.href(target)</code></p>
+          <div class="ddr-builder">
+            <div class="form-field">
+              <label class="label" for="hb-id">id</label>
+              <select class="select" id="hb-id" data-size="sm">
+                <option value="project" selected>project</option>
+                <option value="file">file</option>
+                <option value="api">api</option>
+                <option value="docs">docs</option>
+                <option value="home">home</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="label" for="hb-params">params (JSON)</label>
+              <input class="input" id="hb-params" type="text" spellcheck="false" value='{"id":"a b"}' data-size="sm">
+            </div>
+            <div class="form-field">
+              <label class="label" for="hb-query">query (JSON pairs)</label>
+              <input class="input" id="hb-query" type="text" spellcheck="false" value='[["tab","files"],["tab","timeline"]]' data-size="sm">
+            </div>
+            <div class="form-field">
+              <label class="label" for="hb-hash">hash (unencoded)</label>
+              <input class="input" id="hb-hash" type="text" spellcheck="false" value="event 7" data-size="sm">
+            </div>
+          </div>
+          <output class="ddr-href-out" id="hb-out" for="hb-id hb-params hb-query hb-hash"></output>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section id="api" class="container ddr-section parallax-reveal" aria-labelledby="api-title">
+    <header class="mk-section-header">
+      <div class="mk-section-header-copy">
+        <span class="mk-section-header-eyebrow">API</span>
+        <h2 class="mk-section-header-title" id="api-title">📚 Tiny API surface, but powerful features</h2>
+        <p class="mk-section-header-desc">One factory, <code>createRouter(config)</code>, and the <code>RouterInputError</code> class. The full declarations ship as <code>dist/index.d.ts</code>; the source of truth is <a href="https://github.com/kyr0/defuss-dom-router/blob/main/src/types.ts">src/types.ts</a>.</p>
+      </div>
+    </header>
+
+    <div class="tabs ddr-api">
+      <div class="tab-list" role="tablist" aria-label="API reference" data-size="lg">
+        <button class="tab-trigger" role="tab" aria-selected="true" aria-controls="api-config" id="tab-config">createRouter()</button>
+        <button class="tab-trigger" role="tab" aria-selected="false" aria-controls="api-router" id="tab-router" tabindex="-1">Router</button>
+        <button class="tab-trigger" role="tab" aria-selected="false" aria-controls="api-types" id="tab-types" tabindex="-1">Types</button>
+        <button class="tab-trigger" role="tab" aria-selected="false" aria-controls="api-errors" id="tab-errors" tabindex="-1">Errors</button>
+      </div>
+
+      <div class="tab-content" role="tabpanel" id="api-config" aria-labelledby="tab-config" tabindex="0">
+        <p class="ddr-api-lead"><code>createRouter(config: RouterConfig): Router</code> validates the configuration synchronously and copies it. Afterwards only the callbacks can change, through <code>config()</code>; new routes or a new mode need a new router.</p>
+        <div class="table-container">
+          <table class="table ddr-table">
+            <thead><tr class="table-row"><th class="table-head">Option</th><th class="table-head">Type</th><th class="table-head">Default</th><th class="table-head">Meaning</th></tr></thead>
+            <tbody>
+              <tr class="table-row"><td class="table-cell"><code>routes</code></td><td class="table-cell"><code>{ id, path }[]</code></td><td class="table-cell">required</td><td class="table-cell">Base-relative patterns. The first registered match wins.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>mode</code></td><td class="table-cell"><code>'history' | 'hash'</code></td><td class="table-cell"><code>'history'</code></td><td class="table-cell">In hash mode the page path stays fixed and <code>#/path?query#anchor</code> is the route, so any static server answers deep links.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>basePath</code></td><td class="table-cell"><code>string</code></td><td class="table-cell"><code>'/'</code></td><td class="table-cell">The origin-rooted, URL-normalized directory the app lives under.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>baseUrl</code></td><td class="table-cell"><code>string</code></td><td class="table-cell">the Window location</td><td class="table-cell">Base for relative resolution before <code>start()</code> or without a Window. HTTP(S) only.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>window</code></td><td class="table-cell"><code>Window</code></td><td class="table-cell"><code>globalThis.window</code></td><td class="table-cell">Resolved lazily at <code>start()</code>: importing and constructing attach no listener.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>scroll</code></td><td class="table-cell"><code>'auto' | 'manual'</code></td><td class="table-cell"><code>'auto'</code></td><td class="table-cell"><code>auto</code> scrolls to anchors after commit and restores saved positions on Back/Forward. <code>manual</code> turns both off.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>prepare</code></td><td class="table-cell"><code>(ctx) =&gt; PreparedView</code></td><td class="table-cell">a no-op view</td><td class="table-cell">Build the next view detached from the page; fetch with <code>ctx.signal</code>. Must not change the live page. May be async.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>afterCommit</code></td><td class="table-cell"><code>(ctx) =&gt; void</code></td><td class="table-cell">–</td><td class="table-cell">Title, focus and ARIA updates after the commit. Respect <code>ctx.cause</code> and existing user focus.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>onError</code></td><td class="table-cell"><code>(error, snapshot) =&gt; void</code></td><td class="table-cell">–</td><td class="table-cell">Typed, serializable <code>{ code, message }</code> diagnostics.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="accordion ddr-accordion">
+          <details class="accordion-item" open>
+            <summary class="accordion-trigger"><span>Route patterns</span><svg class="accordion-chevron ddr-icon" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+            <div class="accordion-content">
+              <p>Patterns are full matches with <code>:named</code> segments, embedded parameters such as <code>/api/v:version</code>, one terminal <code>/*</code> wildcard (its value is named <code>wildcard</code>) and an optional trailing slash. A lone <code>*</code> catches everything. Duplicate IDs, patterns or parameter names and dot segments fail at construction. Parameters are decoded once, so an encoded <code>%2F</code> stays data and never becomes route structure.</p>
+            </div>
+          </details>
+          <details class="accordion-item">
+            <summary class="accordion-trigger"><span>Views: prepare, commit, beforeLeave, dispose</span><svg class="accordion-chevron ddr-icon" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+            <div class="accordion-content">
+              <p><code>prepare(ctx)</code> returns <code>{ commit(), beforeLeave?(), dispose?() }</code>. A superseded view is disposed without committing. Once <code>commit()</code> starts it is never interrupted or rolled back, and a failed commit is reported as an error. <code>beforeLeave</code> runs when the route ID or path changes; query-only changes prepare a new view without stacking leave hooks, and anchor-only changes skip rendering. Callbacks must not await navigation or <code>destroy()</code> of their own router while it commits, because that would wait on itself.</p>
+            </div>
+          </details>
+          <details class="accordion-item">
+            <summary class="accordion-trigger"><span>History state</span><svg class="accordion-chevron ddr-icon" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+            <div class="accordion-content">
+              <p>Navigation state must be finite JSON; the router copies and freezes it. Other fields you keep in <code>history.state</code> survive. Do not call <code>pushState</code>/<code>replaceState</code> yourself while a router owns the Window: such entries carry no router metadata, so a vetoed Back onto them cannot be corrected. One router owns one Window; a second fails with <code>already-owned</code> until the first is destroyed.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <div class="tab-content" role="tabpanel" id="api-router" aria-labelledby="tab-router" tabindex="0" hidden>
+        <div class="table-container">
+          <table class="table ddr-table">
+            <thead><tr class="table-row"><th class="table-head">Method</th><th class="table-head">Returns</th><th class="table-head">Semantics</th></tr></thead>
+            <tbody>
+              <tr class="table-row"><td class="table-cell"><code>start(initialHref?)</code></td><td class="table-cell"><code>Promise&lt;NavigationResult&gt;</code></td><td class="table-cell">Takes ownership of the Window and runs the initial navigation. An explicit <code>initialHref</code> replaces the current entry. Idempotent.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>ready()</code></td><td class="table-cell"><code>Promise&lt;NavigationResult&gt;</code></td><td class="table-cell">Settles with the initial result, or a destroyed result if torn down before start.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>resolve(href, baseHref?)</code></td><td class="table-cell"><code>RouteRequest</code></td><td class="table-cell">Pure and immutable. Throws <code>RouterInputError</code> for invalid, out-of-origin or out-of-base input.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>href({ id, params?, query?, hash? })</code></td><td class="table-cell"><code>string</code></td><td class="table-cell">Named href, portable across history and hash mode and <code>basePath</code>. Validates every required parameter.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>navigate(href, { replace?, state?, cause? })</code></td><td class="table-cell"><code>Promise&lt;NavigationResult&gt;</code></td><td class="table-cell">Never rejects. <code>cause</code> is <code>'programmatic'</code> (default) or <code>'native'</code>, for links a native shell delivers.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>getSnapshot()</code></td><td class="table-cell"><code>RouterSnapshot</code></td><td class="table-cell">The frozen navigation state right now.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>subscribe(listener)</code></td><td class="table-cell"><code>Disposer</code></td><td class="table-cell">Called on every snapshot change, not immediately. Call <code>getSnapshot()</code> for the current value.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>beforeEach(guard)</code></td><td class="table-cell"><code>Disposer</code></td><td class="table-cell">Async global guard. Only an exact <code>false</code> blocks; an exception becomes a <code>guard-error</code>.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>attachLinks(root, { selector? })</code></td><td class="table-cell"><code>Disposer</code></td><td class="table-cell">One delegated listener, default <code>a[data-router-link]</code>. Leaves modified clicks, downloads, other targets, <code>rel="external"</code> and <code>data-router-ignore</code> to the browser. Links stay native until <code>start()</code>.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>config(callbacks)</code></td><td class="table-cell"><code>void</code></td><td class="table-cell">Replaces <code>prepare</code>, <code>afterCommit</code> or <code>onError</code> only.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>render()</code></td><td class="table-cell"><code>Promise&lt;NavigationResult&gt;</code></td><td class="table-cell">Prepares and commits the current screen again, without guards or history writes.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>destroy()</code></td><td class="table-cell"><code>Promise&lt;void&gt;</code></td><td class="table-cell">Removes listeners at once, settles pending navigations, awaits a running commit and disposes its view.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-content" role="tabpanel" id="api-types" aria-labelledby="tab-types" tabindex="0" hidden>
+        <div class="ddr-types">
+          <article class="card ddr-type">
+            <div class="card-header"><h3 class="card-title"><code>RouteRequest</code></h3><p class="card-description">An immutable snapshot of one URL. Logical route fields are separate from the physical page URL.</p></div>
+            <div class="card-content">
+              <dl class="ddr-dl">
+                <div><dt><code>match</code>, <code>routeId</code>, <code>matchedRoute</code></dt><dd>Whether and which route matched, and its pattern.</dd></div>
+                <div><dt><code>href</code>, <code>origin</code>, <code>pathname</code></dt><dd>The canonical physical page URL; in hash mode it includes the encoded route.</dd></div>
+                <div><dt><code>path</code>, <code>search</code>, <code>hash</code></dt><dd>The logical, base-relative route, its query and its anchor.</dd></div>
+                <div><dt><code>params</code></dt><dd>Once-decoded route data.</dd></div>
+                <div><dt><code>query</code></dt><dd>Frozen, ordered <code>[key, value]</code> pairs: duplicates survive.</dd></div>
+              </dl>
+            </div>
+          </article>
+          <article class="card ddr-type">
+            <div class="card-header"><h3 class="card-title"><code>NavigationContext</code></h3><p class="card-description">What guards, <code>prepare()</code> and <code>afterCommit()</code> receive.</p></div>
+            <div class="card-content">
+              <dl class="ddr-dl">
+                <div><dt><code>to</code>, <code>from</code></dt><dd>The target request and the current one (<code>null</code> at first).</dd></div>
+                <div><dt><code>cause</code></dt><dd><code>initial</code>, <code>programmatic</code>, <code>link</code>, <code>traverse</code>, <code>hashchange</code>, <code>native</code> or <code>render</code>.</dd></div>
+                <div><dt><code>intentId</code></dt><dd>Increments with every intent; results carry it too.</dd></div>
+                <div><dt><code>signal</code></dt><dd>Aborts when a newer intent or <code>destroy()</code> abandons this one.</dd></div>
+                <div><dt><code>state</code></dt><dd>The frozen JSON state of the target entry.</dd></div>
+              </dl>
+            </div>
+          </article>
+          <article class="card ddr-type">
+            <div class="card-header"><h3 class="card-title"><code>RouterSnapshot</code></h3><p class="card-description">What <code>getSnapshot()</code> and subscribers see.</p></div>
+            <div class="card-content">
+              <dl class="ddr-dl">
+                <div><dt><code>phase</code></dt><dd><code>idle</code>, <code>preparing</code>, <code>committing</code>, <code>error</code> or <code>destroyed</code>.</dd></div>
+                <div><dt><code>current</code>, <code>pending</code></dt><dd>The current request (during a commit, the one being committed, while the DOM may still be rendering) and the one being prepared.</dd></div>
+                <div><dt><code>intentId</code>, <code>entryKey</code></dt><dd>The latest intent and the owned history entry's key.</dd></div>
+                <div><dt><code>historyOwnership</code></dt><dd><code>owned</code> or <code>unowned</code>.</dd></div>
+                <div><dt><code>state</code>, <code>error</code></dt><dd>The current entry's JSON state; the last failure.</dd></div>
+              </dl>
+            </div>
+          </article>
+          <article class="card ddr-type">
+            <div class="card-header"><h3 class="card-title"><code>PreparedView</code> and friends</h3><p class="card-description">The small shapes you pass in.</p></div>
+            <div class="card-content">
+              <dl class="ddr-dl">
+                <div><dt><code>PreparedView</code></dt><dd><code>commit()</code>, optional <code>beforeLeave(ctx)</code> and <code>dispose()</code>, each sync or async.</dd></div>
+                <div><dt><code>NavigationGuard</code></dt><dd><code>(ctx) =&gt; boolean | void</code>, sync or async.</dd></div>
+                <div><dt><code>NavigateOptions</code></dt><dd><code>replace</code>, <code>state</code> (finite JSON), <code>cause</code>.</dd></div>
+                <div><dt><code>HrefTarget</code></dt><dd><code>id</code>, <code>params</code>, <code>query</code> pairs and an unencoded <code>hash</code>.</dd></div>
+                <div><dt><code>LinkOptions</code></dt><dd><code>selector</code>, default <code>a[data-router-link]</code>.</dd></div>
+              </dl>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="tab-content" role="tabpanel" id="api-errors" aria-labelledby="tab-errors" tabindex="0" hidden>
+        <p class="ddr-api-lead"><code>resolve()</code> and <code>href()</code> throw <code>RouterInputError</code> (with <code>code</code>) for invalid explicit input; <code>navigate()</code> resolves to <code>rejected</code> or <code>error</code> instead. <code>onError</code> receives the same <code>{ code, message }</code>. Messages are fixed text and never contain the URL or the text of an exception your callback threw.</p>
+        <div class="table-container">
+          <table class="table ddr-table ddr-codes">
+            <thead><tr class="table-row"><th class="table-head">Code</th><th class="table-head">When</th></tr></thead>
+            <tbody>
+              <tr class="table-row"><td class="table-cell"><code>invalid-url</code></td><td class="table-cell">Not a credential-free HTTP(S) URL, or it contains whitespace, control characters or backslashes; also malformed <code>query</code>/<code>hash</code> input to <code>href()</code>.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>invalid-encoding</code></td><td class="table-cell">Malformed percent-encoding or UTF-8.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>invalid-route</code></td><td class="table-cell">A bad route table, mode, scroll policy or <code>basePath</code>; an unknown route ID or missing parameters; invalid options or callbacks.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>outside-origin</code></td><td class="table-cell">The target is on another origin.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>outside-base</code></td><td class="table-cell">The target is outside <code>basePath</code>.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>outside-shell</code></td><td class="table-cell">Hash mode: the target changes the physical page path or outer query, or the fragment does not start with <code>#/</code>.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>invalid-state</code></td><td class="table-cell">State that is not finite JSON: functions, host objects, cycles, accessors, symbols or sparse arrays.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>not-started</code></td><td class="table-cell"><code>navigate()</code> before <code>start()</code>, <code>render()</code> before the first commit, or <code>start()</code> without a Window.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>already-owned</code></td><td class="table-cell">Another router already owns this Window.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>destroyed</code></td><td class="table-cell">The router was destroyed.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>guard-error</code></td><td class="table-cell">A global guard or <code>beforeLeave</code> threw.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>prepare-error</code></td><td class="table-cell"><code>prepare()</code> threw or returned no view with <code>commit()</code>.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>history-error</code></td><td class="table-cell">The browser refused <code>pushState</code>/<code>replaceState</code>.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>commit-error</code></td><td class="table-cell"><code>commit()</code> threw. Nothing is rolled back.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>effect-error</code></td><td class="table-cell"><code>afterCommit</code>, a <code>dispose()</code> or a subscriber threw.</td></tr>
+              <tr class="table-row"><td class="table-cell"><code>unowned-history</code></td><td class="table-cell">A vetoed or failed Back/Forward could not be walked back: the correction was impossible or did not arrive within 3 seconds. The protected content is not committed.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="numbers" class="container ddr-section parallax-reveal" aria-labelledby="numbers-title">
+    <section class="mk-stats" style="width:100%">
+      <div class="mk-stats-layout">
+        <div class="mk-stats-copy">
+          <div class="mk-stats-head">
+            <h2 class="mk-stats-title" id="numbers-title">Small, and measured</h2>
+            <p class="mk-stats-desc">Sizes are <code>make metrics</code> output for the 0.1.0 build of <code>dist/index.js</code>, the file this page and the demo load. <code>make lint</code> fails when the bundle imports another module or grows past 14,000 bytes gzip.</p>
+          </div>
+          <div class="mk-stats-grid">
+            <div class="mk-stat"><span class="mk-stat-value">8,928 B <span class="badge" data-variant="secondary" data-size="sm">gzip</span></span><span class="mk-stat-label">7,863 B Brotli, 32,562 B raw: one ESM file</span></div>
+            <div class="mk-stat"><span class="mk-stat-value">0</span><span class="mk-stat-label">runtime or peer dependencies, enforced by the lint policy</span></div>
+            <div class="mk-stat"><span class="mk-stat-value">6</span><span class="mk-stat-label">navigation outcomes; every <code>navigate()</code> settles to exactly one</span></div>
+            <div class="mk-stat" id="stat-engines"><span class="mk-stat-value">3</span><span class="mk-stat-label">browser engines in the release matrix: the browser suite runs against the real History API in Chromium, Firefox and WebKit</span><a href="https://github.com/kyr0/defuss-dom-router/blob/main/tests/browser/suite.mjs" class="btn mk-stat-link" data-variant="link" data-size="default">The browser suite</a></div>
+          </div>
+        </div>
+        <figure class="mk-stats-media ddr-metrics">
+          <div class="mockup-code" data-chrome="mac" data-title="defuss-dom-router">
+            <pre data-prefix="$"><code>make metrics</code></pre>
+            <pre data-prefix=""><code>index.js 32562 bytes 8928 gzip 7863 brotli</code></pre>
+            <pre data-prefix=""><code>index.cjs 32616 bytes 8952 gzip 7875 brotli</code></pre>
+            <pre data-prefix="$"><code>grep -c "^import" dist/index.js</code></pre>
+            <pre data-prefix="" data-tone="success"><code>0</code></pre>
+          </div>
+          <figcaption class="ddr-figcaption">Measured with <code>zlib</code> gzip level 9 and Brotli defaults.</figcaption>
+        </figure>
+      </div>
+    </section>
+  </section>
+
+  <section id="install" class="container ddr-section parallax-reveal" aria-labelledby="install-title">
+    <div class="corner-leaf pattern-dots ddr-use">
+    <header class="mk-section-header">
+      <div class="mk-section-header-copy">
+        <span class="mk-section-header-eyebrow">Install</span>
+        <h2 class="mk-section-header-title" id="install-title">🧑‍💻 Add it to your app</h2>
+        <p class="mk-section-header-desc">Build it from source, or take the one built file. Then write a <code>prepare()</code>, or hand one prompt to your coding agent.</p>
+      </div>
+    </header>
+    <div class="alert ddr-npm-note" role="note">
+      <svg class="alert-icon ddr-icon" aria-hidden="true"><use href="#i-alert"/></svg>
+      <div class="alert-content">
+        <h5 class="alert-title">Not on npm yet</h5>
+        <p class="alert-description">0.1.0 is not published to a registry. Requirements for building: Bun 1.4.2 (pinned in <code>packageManager</code>) and Node.js.</p>
+      </div>
+    </div>
+    <div class="ddr-ways">
+      <div class="ddr-way">
+        <h3 class="ddr-way-title"><svg class="ddr-icon" aria-hidden="true"><use href="#i-package"/></svg>From source</h3>
+        <p class="ddr-way-desc">Clone and build once, then add the checkout to your app. <code>make build</code> runs pkgroll and writes ESM, CommonJS and declarations to <code>dist/</code>.</p>
+        <figure class="mk-code-block">
+          <div class="mk-code-block-head">
+            <div class="mk-code-block-tabs" role="radiogroup" aria-label="Step">
+              <label><input type="radio" name="cb-src" value="build" checked>build</label><label><input type="radio" name="cb-src" value="add">add</label>
+            </div>
+            <button class="mk-code-block-copy" type="button" aria-label="Copy code"><svg class="ddr-icon" aria-hidden="true"><use href="#i-copy"/></svg></button>
+          </div>
+          <pre data-tab="build"><code><span>git clone https://github.com/kyr0/defuss-dom-router.git</span><span>cd defuss-dom-router</span><span>bun install --frozen-lockfile &amp;&amp; make build</span></code></pre>
+          <pre data-tab="add"><code><span>bun add /path/to/defuss-dom-router</span></code></pre>
+          <span class="mk-code-block-status" role="status"></span>
+        </figure>
+      </div>
+      <div class="separator ddr-sep-vertical" data-orientation="vertical" role="separator"></div>
+      <hr class="separator ddr-sep-horizontal">
+      <div class="ddr-way">
+        <h3 class="ddr-way-title"><svg class="ddr-icon" aria-hidden="true"><use href="#i-download"/></svg>One file</h3>
+        <p class="ddr-way-desc"><code>dist/index.js</code> imports nothing, so it runs as a plain browser module without a bundler. This site serves a byte-for-byte copy of it.</p>
+        <div class="ddr-download">
+          <a class="btn" href="assets/defuss-dom-router.js" download="defuss-dom-router.js"><svg class="ddr-icon" aria-hidden="true"><use href="#i-download"/></svg>defuss-dom-router.js</a>
+          <span class="badge" data-variant="outline">32,562 B · ESM</span>
+        </div>
+        <figure class="mk-code-block" data-variant="file">
+          <div class="mk-code-block-head"><span class="mk-code-block-file"><svg class="ddr-icon" aria-hidden="true"><use href="#i-file"/></svg>index.html</span><button class="mk-code-block-copy" type="button" aria-label="Copy code"><svg class="ddr-icon" aria-hidden="true"><use href="#i-copy"/></svg></button></div>
+          <pre><code><span><span class="mk-code-block-k">&lt;script</span> type=<span class="mk-code-block-s">"module"</span><span class="mk-code-block-k">&gt;</span></span><span>  <span class="mk-code-block-k">import</span> { createRouter } <span class="mk-code-block-k">from</span> <span class="mk-code-block-s">'./defuss-dom-router.js'</span>;</span><span><span class="mk-code-block-k">&lt;/script&gt;</span></span></code></pre>
+          <span class="mk-code-block-status" role="status"></span>
+        </figure>
+      </div>
+    </div>
+
+    <div class="ddr-usage">
+      <h3 class="ddr-way-title"><svg class="ddr-icon" aria-hidden="true"><use href="#i-terminal"/></svg>Render routes</h3>
+      <p class="ddr-way-desc"><code>prepare()</code> builds the view without touching the page; <code>commit()</code> puts it on screen. Served at <code>/projects/42</code>, the outlet shows <em>Project 42</em>; a click on <code>&lt;a data-router-link href="/projects/7"&gt;</code> shows <em>Project 7</em>, and Back shows <em>Project 42</em> again, all in one document load. Clean paths need your server to answer them with the same HTML; with <code>mode: 'hash'</code> any static server is enough.</p>
+      <figure class="mk-code-block" data-variant="file">
+        <div class="mk-code-block-head">
+          <div class="mk-code-block-tabs" role="radiogroup" aria-label="Renderer">
+            <label><input type="radio" name="cb-render" value="dom" checked>Plain DOM</label><label><input type="radio" name="cb-render" value="query">defuss-query / morph</label><label><input type="radio" name="cb-render" value="node">Without a Window</label>
+          </div>
+          <button class="mk-code-block-copy" type="button" aria-label="Copy code"><svg class="ddr-icon" aria-hidden="true"><use href="#i-copy"/></svg></button>
+        </div>
+        <pre data-tab="dom" data-numbers><code><span><span class="mk-code-block-k">import</span> { createRouter } <span class="mk-code-block-k">from</span> <span class="mk-code-block-s">'./assets/defuss-dom-router.js'</span>;</span><span></span><span><span class="mk-code-block-k">const</span> outlet = document.querySelector(<span class="mk-code-block-s">'main'</span>);</span><span><span class="mk-code-block-k">if</span> (!outlet) <span class="mk-code-block-k">throw new</span> Error(<span class="mk-code-block-s">'A main outlet is required'</span>);</span><span><span class="mk-code-block-k">const</span> router = createRouter({</span><span>  routes: [{ id: <span class="mk-code-block-s">'project'</span>, path: <span class="mk-code-block-s">'/projects/:id'</span> }, { id: <span class="mk-code-block-s">'missing'</span>, path: <span class="mk-code-block-s">'*'</span> }],</span><span data-highlight>  prepare({ to }) {</span><span>    <span class="mk-code-block-k">const</span> heading = document.createElement(<span class="mk-code-block-s">'h1'</span>);</span><span>    heading.textContent = to.match &amp;&amp; to.routeId === <span class="mk-code-block-s">'project'</span></span><span>      ? <span class="mk-code-block-s">`Project ${to.params.id}`</span> : <span class="mk-code-block-s">'Not found'</span>;</span><span data-highlight>    <span class="mk-code-block-k">return</span> { commit() { outlet.replaceChildren(heading); } };</span><span>  },</span><span>});</span><span>router.attachLinks(document);</span><span><span class="mk-code-block-k">await</span> router.start();</span></code></pre>
+        <pre data-tab="query" data-numbers><code><span><span class="mk-code-block-c">// The router imports neither; call them inside commit(). Their html()/morph() take</span></span><span><span class="mk-code-block-c">// markup or VNodes, not a DOM element, so serialize what you built.</span></span><span><span class="mk-code-block-c">// With defuss-shadcn's core loaded, reuse its globalThis.df$ instead of a second engine.</span></span><span>prepare({ to }) {</span><span>  <span class="mk-code-block-k">const</span> heading = document.createElement(<span class="mk-code-block-s">'h1'</span>);</span><span>  heading.textContent = to.routeId === <span class="mk-code-block-s">'record'</span> ? <span class="mk-code-block-s">`Record ${to.params.id}`</span> : <span class="mk-code-block-s">'Not found'</span>;</span><span>  <span class="mk-code-block-k">const</span> markup = heading.outerHTML;</span><span data-highlight>  <span class="mk-code-block-k">return</span> { <span class="mk-code-block-k">async</span> commit() { <span class="mk-code-block-k">await</span> df$(<span class="mk-code-block-s">'#route-view'</span>).html(markup); } };</span><span>}</span></code></pre>
+        <pre data-tab="node" data-numbers><code><span><span class="mk-code-block-k">import</span> { createRouter } <span class="mk-code-block-k">from</span> <span class="mk-code-block-s">'defuss-dom-router'</span>;</span><span></span><span><span class="mk-code-block-k">const</span> router = createRouter({</span><span>  baseUrl: <span class="mk-code-block-s">'https://example.test/app/'</span>,</span><span>  basePath: <span class="mk-code-block-s">'/app'</span>,</span><span>  routes: [{ id: <span class="mk-code-block-s">'project'</span>, path: <span class="mk-code-block-s">'/projects/:id'</span> }, { id: <span class="mk-code-block-s">'missing'</span>, path: <span class="mk-code-block-s">'*'</span> }],</span><span>});</span><span data-highlight><span class="mk-code-block-k">const</span> to = router.resolve(<span class="mk-code-block-s">'/app/projects/42?tab=timeline&amp;tab=files#event-7'</span>);</span><span>console.log(to.routeId, to.params, to.query, to.hash);</span><span data-highlight>console.log(router.href({ id: <span class="mk-code-block-s">'project'</span>, params: { id: <span class="mk-code-block-s">'a b'</span> }, query: [[<span class="mk-code-block-s">'tab'</span>, <span class="mk-code-block-s">'files'</span>]] }));</span><span><span class="mk-code-block-c">// project [Object: null prototype] { id: '42' } [ [ 'tab', 'timeline' ], [ 'tab', 'files' ] ] #event-7</span></span><span><span class="mk-code-block-c">// /app/projects/a%20b?tab=files</span></span></code></pre>
+        <span class="mk-code-block-status" role="status"></span>
+      </figure>
+    </div>
+
+    <hr class="separator ddr-sep-wide">
+    <div class="ddr-way ddr-way-agent">
+      <h3 class="ddr-way-title"><svg class="ddr-icon" aria-hidden="true"><use href="#i-bot"/></svg>Vibe coding</h3>
+      <p class="ddr-way-desc">Paste this prompt into your coding agent. It links the repository, so the agent works from the current README and the bundled <code>SKILL.md</code>.</p>
+      <div class="ddr-prompt">
+        <div class="mockup-code" data-chrome="mac" data-title="coding agent · ~/your-app" data-wrap id="agent-prompt">
+          <pre data-prefix=">"><code>Integrate defuss-dom-router into this app: https://github.com/kyr0/defuss-dom-router</code></pre>
+          <pre data-prefix=""><code>Read its README.md and SKILL.md first. It is not on npm: build it from a checkout (bun install, make build) and import createRouter from the package or a copied dist/index.js.</code></pre>
+          <pre data-prefix=""><code>Register routes and guards before start(). Build each screen in prepare() without touching the live page, put it on screen in commit(), and await every navigation result, including blocked, superseded and error.</code></pre>
+          <pre data-prefix=""><code>Use real &lt;a data-router-link&gt; anchors with hrefs from router.href(). Use mode: 'hash' only when the server cannot answer deep links with the app's HTML.</code></pre>
+          <pre data-prefix="" data-tone="muted" data-cursor><code>⏎ send</code></pre>
+        </div>
+        <button type="button" class="btn ddr-prompt-copy" data-variant="secondary" data-size="sm" id="copy-prompt"><svg class="ddr-icon" aria-hidden="true"><use href="#i-copy"/></svg><span>Copy prompt</span></button>
+        <span class="sr-only" role="status" id="copy-prompt-status"></span>
+      </div>
+      <p class="ddr-way-desc">Give your agent the defuss-vae skills too: it then plans, tests and reviews against a verifier instead of declaring itself done. In Claude Code, the plugin adds the commit and Stop-hook gate. Needs <code>python3</code> ≥ 3.9, <code>git</code> and <code>make</code>.</p>
+      <figure class="mk-code-block" id="vae-install">
+        <div class="mk-code-block-head">
+          <div class="mk-code-block-tabs" role="radiogroup" aria-label="Agent">
+            <label><input type="radio" name="cb-vae" value="skills" checked>Any agent</label><label><input type="radio" name="cb-vae" value="claude">Claude Code plugin</label>
+          </div>
+          <button class="mk-code-block-copy" type="button" aria-label="Copy code"><svg class="ddr-icon" aria-hidden="true"><use href="#i-copy"/></svg></button>
+        </div>
+        <pre data-tab="skills"><code><span>npx skills add kyr0/defuss-vae --skill '*'</span></code></pre>
+        <pre data-tab="claude"><code><span>claude plugin marketplace add kyr0/defuss-vae</span><span>claude plugin install defuss-vae@defuss-vae</span></code></pre>
+        <span class="mk-code-block-status" role="status"></span>
+      </figure>
+    </div>
+    </div>
+  </section>
+
+  <div class="container ddr-section parallax-reveal" data-reveal="zoom">
+    <div class="corner-leaf ddr-consult">
+      <section class="mk-cta" data-variant="split" aria-labelledby="vae-title">
+        <div class="mk-cta-inner">
+          <div class="mk-cta-copy">
+            <div class="ddr-cta-head">
+              <div class="aura aura-glow aura-gold ddr-cta-portrait" style="--shape-round:1.25rem"><img class="shape-squircle" src="assets/aron-homberg.jpg" width="400" height="400" alt="Portrait of Aron Homberg" loading="lazy"></div>
+              <h2 class="mk-cta-title" id="vae-title">Stressed with inconsistent results and tiring reviews?</h2>
+            </div>
+            <p class="mk-cta-desc">Try <a href="https://github.com/kyr0/defuss-vae" target="_blank" rel="noopener">defuss-vae<svg class="ddr-icon ddr-ext" aria-hidden="true"><use href="#i-external"/></svg><span class="sr-only"> (opens in a new tab)</span></a>, the <a href="https://vae.defuss.org" target="_blank" rel="noopener">Verified Agentic Engineering method<svg class="ddr-icon ddr-ext" aria-hidden="true"><use href="#i-external"/></svg><span class="sr-only"> (opens in a new tab)</span></a> by Aron Homberg, and let your agents become consistent! Aron is a freelance and independent AI researcher, an O'Reilly author (2011), a conference speaker and a long-term trainer and lecturer for professional software engineering teams worldwide.</p>
+          </div>
+          <div class="mk-cta-actions ddr-consult-actions">
+            <a class="btn" data-size="lg" href="https://www.linkedin.com/in/aronhomberg/" target="_blank" rel="noopener"><svg class="ddr-icon ddr-icon-fill" aria-hidden="true"><use href="#i-linkedin"/></svg>Talk to Aron on LinkedIn<svg class="ddr-icon ddr-ext" aria-hidden="true"><use href="#i-external"/></svg><span class="sr-only"> (opens in a new tab)</span></a>
+            <p class="mk-cta-note ddr-consult-note">...if you're looking for a remote training or mentoring session for you or your engineering team.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="container ddr-section parallax-reveal" data-reveal="zoom">
+    <section class="mk-cta" data-variant="dark" aria-labelledby="cta-title">
+      <div class="mk-cta-inner">
+        <div class="mk-cta-copy">
+          <h2 class="mk-cta-title" id="cta-title">Route with plain URLs and the renderer you already have</h2>
+          <p class="mk-cta-desc">Awaitable results, guards before history writes and Back/Forward vetoes that heal, in one file without dependencies.</p>
+        </div>
+        <div class="mk-cta-actions">
+          <a class="btn" data-size="lg" href="https://github.com/kyr0/defuss-dom-router" target="_blank" rel="noopener">View on GitHub<svg class="ddr-icon ddr-ext" aria-hidden="true"><use href="#i-external"/></svg><span class="sr-only"> (opens in a new tab)</span></a>
+          <a class="btn" data-variant="outline" data-size="lg" href="#demo">Try the demo again</a>
+        </div>
+        <p class="mk-cta-note">MIT licensed · 0.1.0 · zero runtime dependencies</p>
+      </div>
+    </section>
+  </div>
+
+  </main>
+
+  <footer class="mk-footer" style="width:100%">
+    <div class="mk-footer-inner">
+      <nav class="mk-footer-nav ddr-footer-nav" aria-label="Footer">
+        <div class="mk-footer-col">
+          <h3 class="mk-footer-heading">Project</h3>
+          <ul class="mk-footer-list">
+            <li><a href="https://github.com/kyr0/defuss-dom-router" target="_blank" rel="noopener">Source code<svg class="ddr-icon ddr-ext" aria-hidden="true"><use href="#i-external"/></svg><span class="sr-only"> (opens in a new tab)</span></a></li>
+            <li><a href="https://github.com/kyr0/defuss-dom-router/blob/main/README.md" target="_blank" rel="noopener">README<svg class="ddr-icon ddr-ext" aria-hidden="true"><use href="#i-external"/></svg><span class="sr-only"> (opens in a new tab)</span></a></li>
+            <li><a href="https://github.com/kyr0/defuss-dom-router/blob/main/ARCH.md" target="_blank" rel="noopener">Architecture<svg class="ddr-icon ddr-ext" aria-hidden="true"><use href="#i-external"/></svg><span class="sr-only"> (opens in a new tab)</span></a></li>
+            <li><a href="https://github.com/kyr0/defuss-dom-router/blob/main/src/types.ts" target="_blank" rel="noopener">Types<svg class="ddr-icon ddr-ext" aria-hidden="true"><use href="#i-external"/></svg><span class="sr-only"> (opens in a new tab)</span></a></li>
+          </ul>
+        </div>
+        <div class="mk-footer-col">
+          <h3 class="mk-footer-heading">This page</h3>
+          <ul class="mk-footer-list">
+            <li><a href="#demo">Live demo</a></li>
+            <li><a href="#how">How it works</a></li>
+            <li><a href="#resolve">resolve() explorer</a></li>
+            <li><a href="#api">API</a></li>
+          </ul>
+        </div>
+        <div class="mk-footer-col">
+          <h3 class="mk-footer-heading">Works with</h3>
+          <ul class="mk-footer-list">
+            <li><a href="https://github.com/kyr0/defuss-shadcn" target="_blank" rel="noopener">defuss-shadcn<svg class="ddr-icon ddr-ext" aria-hidden="true"><use href="#i-external"/></svg><span class="sr-only"> (opens in a new tab)</span></a></li>
+            <li><a href="https://www.npmjs.com/package/defuss-query" target="_blank" rel="noopener">defuss-query<svg class="ddr-icon ddr-ext" aria-hidden="true"><use href="#i-external"/></svg><span class="sr-only"> (opens in a new tab)</span></a></li>
+            <li><a href="https://www.npmjs.com/package/defuss-morph" target="_blank" rel="noopener">defuss-morph<svg class="ddr-icon ddr-ext" aria-hidden="true"><use href="#i-external"/></svg><span class="sr-only"> (opens in a new tab)</span></a></li>
+          </ul>
+        </div>
+        <div class="mk-footer-col">
+          <h3 class="mk-footer-heading">Professional consulting services</h3>
+          <aside class="corner-leaf ddr-ad" aria-label="Consulting by Aron Homberg">
+            <div class="ddr-ad-head">
+              <div class="aura aura-glow aura-gold ddr-ad-portrait" style="--shape-round:1.5rem"><img class="shape-squircle" src="assets/aron-homberg.jpg" width="400" height="400" alt="Portrait of Aron Homberg" loading="lazy"></div>
+              <div>
+                <p class="ddr-ad-name">Aron Homberg</p>
+                <p class="ddr-ad-role">Freelance computer science expert · independent AI researcher</p>
+              </div>
+            </div>
+            <a class="btn" data-size="sm" href="https://www.linkedin.com/in/aronhomberg/" target="_blank" rel="noopener"><svg class="ddr-icon ddr-icon-fill" aria-hidden="true"><use href="#i-linkedin"/></svg>Connect on LinkedIn<svg class="ddr-icon ddr-ext" aria-hidden="true"><use href="#i-external"/></svg><span class="sr-only"> (opens in a new tab)</span></a>
+          </aside>
+        </div>
+      </nav>
+      <hr class="separator mk-footer-rule">
+      <div class="mk-footer-bottom">
+        <a href="#top" class="mk-footer-brand" aria-label="Back to the top"><svg class="ddr-icon" aria-hidden="true"><use href="#i-logo"/></svg><span class="mk-footer-brand-name">defuss-dom-router</span></a>
+        <div class="mk-footer-meta">
+          <p class="mk-footer-copy">© 2026 <a href="https://www.linkedin.com/in/aronhomberg/" target="_blank" rel="noopener">Aron Homberg (kyr0)<svg class="ddr-icon ddr-ext" aria-hidden="true"><use href="#i-external"/></svg><span class="sr-only"> (opens in a new tab)</span></a> · MIT. Built with <a href="https://github.com/kyr0/defuss-shadcn" target="_blank" rel="noopener">defuss-shadcn<svg class="ddr-icon ddr-ext" aria-hidden="true"><use href="#i-external"/></svg><span class="sr-only"> (opens in a new tab)</span></a>.</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
+<div class="fab" data-scroll-top>
+  <a class="btn fab-trigger" href="#top" aria-label="Back to top"><span class="fab-icon" aria-hidden="true"><svg class="ddr-icon"><use href="#i-arrow-up"/></svg></span></a>
+</div>
+
+<script type="module" src="https://cdn.jsdelivr.net/npm/defuss-shadcn@0.9.8/dist/components/all.min.js" integrity="sha384-Lk87A4KViuU62PT7Hy5Qw2DHzw0iEtvi2huW/2h9963U/cZLBARdRf7LZMCsirTa" crossorigin="anonymous"></script>
+<script type="module" src="assets/site.js"></script>
+</body>
+</html>

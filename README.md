@@ -26,6 +26,8 @@ python3 -m http.server 8080 --bind 127.0.0.1
 
 Open `http://127.0.0.1:8080/examples/plain/index.html#/projects/42?tab=timeline#event-7`. The page title reads `Project 42 · Defuss routing`. The project links and the Back, Forward, replace and rerender buttons navigate without reloading the document, and the routing-state panel shows the live router snapshot.
 
+The website in `docs/` explains the router with a live demo app, an explorer for `resolve()` and `href()` and the API reference. GitHub Pages publishes it from `docs/` on `main` at https://dom-router.defuss.org. It is static, so the server above also serves it at `http://127.0.0.1:8080/docs/`. It loads defuss-shadcn from jsDelivr and serves its own copy of `dist/index.js`.
+
 ## Usage
 
 The package is not published to npm yet. Install it from a local checkout with `bun add /path/to/defuss-dom-router`, or copy `dist/index.js` into your static assets: it imports nothing, so it runs as a plain browser module.
@@ -125,10 +127,11 @@ make setup && make verify
 | Command | What it runs |
 | --- | --- |
 | `make build` | `pkgroll` → `dist/` (ESM, CJS, declarations), plus a test-only bundle of internal modules in `tmp/units/` |
+| `make docs` | Build, then copy `dist/index.js` to `docs/assets/defuss-dom-router.js`; `make test` fails while that copy is stale |
 | `make lint` | `tsc --noEmit`, `oxlint --deny-warnings`, `tools/policy.py` |
 | `make test` | Node tests against the built package, an isolated consumer of the packed tarball, Python tests of the VAE adapter |
-| `make coverage` | Line coverage of `dist/index.js`, Node and Chromium e2e merged; fails below 60 % |
-| `make e2e` | The browser suite in every engine listed in `ROUTER_BROWSERS` (default `chromium`) |
+| `make coverage` | Line coverage of `dist/index.js`, Node and Chromium e2e merged; fails below 90 % (the VAE gate checks the same floor) |
+| `make e2e` | The browser suite, then the website (`docs/`): landing page, explorer and every playground route, in every engine listed in `ROUTER_BROWSERS` (default `chromium`); the website check needs network access to jsDelivr |
 | `make browser-primitives` | History and link units on Chromium's blank page |
 | `make examples` | Build, then download the pinned query/morph/shadcn assets for `examples/peers/` |
 | `make metrics` | Raw, gzip and Brotli sizes of `dist/` |

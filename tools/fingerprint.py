@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Content-address all code, tests, policy and build inputs, so cached VAE verification expires on any change.
 
-VERIFIED: dist/ outputs, evidence and dependencies are excluded. Shipped package documents and local example assets are included.
+VERIFIED: dist/ outputs, evidence and dependencies are excluded. Shipped package documents, local example assets and the website (docs/) are included.
 """
 from __future__ import annotations
 import hashlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-TREES = ("src", "tests", "tools", ".githooks", ".github", "examples")
+TREES = ("src", "tests", "tools", ".githooks", ".github", "examples", "docs")
 FILES = ("package.json", "README.md", "SKILL.md", "LICENSE", "tsconfig.json", "Makefile", ".gitattributes", ".gitignore", ".env.example", "bun.lock", "bun.lockb", ".agents/VERIFY.py")
 
 

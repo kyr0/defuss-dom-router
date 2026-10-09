@@ -1,6 +1,6 @@
 NODE ?= node
 PYTHON ?= python3
-.PHONY: setup build lint test coverage e2e browser-primitives verify verify-fast gate agent-init examples start stop restart status log metrics bench
+.PHONY: setup build docs lint test coverage e2e browser-primitives verify verify-fast gate agent-init examples start stop restart status log metrics bench
 setup:
 	bun install --frozen-lockfile
 	$(PYTHON) tools/bootstrap_vae.py
@@ -10,9 +10,13 @@ setup:
 build:
 	bun run build
 	bun build tests/units.ts --target=browser --format=esm --outfile=tmp/units/units.js
+# docs/ is the static website. It serves a committed copy of the built bundle; tests/docs.test.mjs fails while it is stale.
+docs: build
+	cp dist/index.js docs/assets/defuss-dom-router.js
+# docs/assets/defuss-dom-router.js is the built bundle (a copy of dist/index.js); its sources are linted in src/.
 lint: build
 	bunx tsc --noEmit
-	bunx oxlint --deny-warnings
+	bunx oxlint --deny-warnings --ignore-pattern docs/assets/defuss-dom-router.js
 	$(PYTHON) tools/policy.py
 test: build
 	$(NODE) tools/test.mjs
@@ -21,6 +25,7 @@ coverage: build
 	$(NODE) tools/coverage.mjs
 e2e: build
 	$(NODE) tools/browser.mjs
+	$(NODE) tools/docs-browser.mjs
 browser-primitives: build
 	$(NODE) tools/browser-primitives.mjs
 verify-fast: lint test coverage

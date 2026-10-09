@@ -138,6 +138,13 @@ class EngineeringTests(unittest.TestCase):
             (self.root / name).write_text("v2")
             self.assertNotEqual(source_fingerprint(self.root), before, name)
 
+    def test_fingerprint_tracks_the_website(self):
+        (self.root / "docs/assets").mkdir(parents=True); page = self.root / "docs/index.html"; page.write_text("v1")
+        before = source_fingerprint(self.root)
+        page.write_text("v2"); self.assertNotEqual(source_fingerprint(self.root), before)
+        changed = source_fingerprint(self.root)
+        (self.root / "docs/assets/site.js").write_text("x"); self.assertNotEqual(source_fingerprint(self.root), changed)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -47,3 +47,18 @@ test('subscriptions and guards cannot be added after destruction',async()=>{cons
 
  test('cross-realm plain JSON state is accepted, host prototypes are not',async()=>{const {runInNewContext}=await import('node:vm');assert.equal(JSON.stringify(jsonState(runInNewContext('({x:[1,2]})'))),'{"x":[1,2]}');assert.throws(()=>jsonState(runInNewContext('new Date()')),code('invalid-state'));});
  test('structural options are snapshotted rather than retained mutably',()=>{const config={baseUrl:'https://one.test/',routes:[{id:'home',path:'/'}]};const r=createRouter(config);config.baseUrl='https://other.test/';config.routes.push({id:'a',path:'/a'});assert.equal(r.resolve('/').origin,'https://one.test');assert.equal(r.resolve('/a').match,false);});
+test('configuration and URL input errors are typed', () => {
+  for (const routes of [[{ path: '/' }], [{ id: '', path: '/' }], [{ id: 'x' }]]) assert.throws(() => make({ routes }), code('invalid-route'));
+  for (const basePath of ['app', '//app/', '/app?x']) assert.throws(() => make({ basePath }), code('invalid-route'));
+  assert.throws(() => make().resolve('http://[::1'), code('invalid-url'));
+});
+test('lone surrogates in route data or anchors cannot be encoded', () => {
+  const r = make();
+  assert.throws(() => r.href({ id: 'person', params: { id: '\uD800' } }), code('invalid-encoding'));
+  assert.throws(() => r.href({ id: 'home', hash: 'x\uD800' }), code('invalid-encoding'));
+});
+test('a throwing onError does not break settlement', async () => {
+  const r = make({ onError() { throw Error('handler bug'); } });
+  const result = await r.navigate('/console/');
+  assert.equal(result.status, 'rejected'); assert.equal(result.error.code, 'not-started');
+});

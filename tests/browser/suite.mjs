@@ -155,4 +155,46 @@ await test('links attached before start stay native instead of being swallowed',
  const r=make();r.attachLinks(document);const a=document.createElement('a');a.href='/a';a.dataset.routerLink='';document.body.append(a);
  let routed;const observe=e=>{routed=e.defaultPrevented;e.preventDefault();};document.addEventListener('click',observe);a.click();document.removeEventListener('click',observe);a.remove();equal(routed,false);
 });
+await test('native links carry their cause; navigate() rejects other causes and unknown options',async()=>{
+ const causes=[];const r=make({prepare(ctx){causes.push('prepare:'+ctx.cause);return{commit(){}};},afterCommit(ctx){causes.push('after:'+ctx.cause);}});await r.start();r.beforeEach(ctx=>{causes.push('guard:'+ctx.cause);});
+ equal((await r.navigate(location.origin+'/a?from=shell',{cause:'native'})).status,'committed');equal(causes.slice(-3),['guard:native','prepare:native','after:native']);
+ const before=history.length;
+ for(const options of [{cause:'link'},{cause:'traverse'},{replace:'yes'},{unknown:1},[]]){const result=await r.navigate('/b',options);equal(result.status,'rejected');equal(result.error.code,'invalid-route');}
+ equal(history.length,before);equal(location.pathname,'/a');
+});
+await test('array state is copied deep-frozen and restored; non-JSON shapes are rejected before history writes',async()=>{
+ const r=make();await r.start();const items=[1,'two',null,{nested:[true]}];
+ await r.navigate('/a',{state:{items}});items.push('later');const state=r.getSnapshot().state;equal(state,{items:[1,'two',null,{nested:[true]}]});ok(Object.isFrozen(state.items)&&Object.isFrozen(state.items[3].nested),'deep frozen');
+ await r.navigate('/b');const pending=next(r,s=>s.current.path==='/a');history.back();await pending;equal(r.getSnapshot().state,{items:[1,'two',null,{nested:[true]}]});
+ const accessor=[];Object.defineProperty(accessor,'0',{get:()=>1,enumerable:true});const before=history.length;
+ // eslint-disable-next-line no-sparse-arrays -- a sparse array is the rejected input under test
+ for(const bad of [new Date(0),[1,,3],Object.assign([1],{x:2}),accessor,[()=>1]])equal((await r.navigate('/b',{state:{bad}})).error?.code,'invalid-state');
+ equal(history.length,before);equal(location.pathname,'/a');
+});
+await test('subscriber and dispose failures report effect-error without undoing the commit; afterCommit failures settle as errors',async()=>{
+ const codes=[];let throwIn='';const r=make({onError(e){codes.push(e.code);},prepare(){return{commit(){},dispose(){if(throwIn==='dispose')throw Error('secret');}};},afterCommit(){if(throwIn==='after')throw Error('secret');}});
+ r.subscribe(()=>{if(throwIn==='subscriber')throw Error('secret');});await r.start();
+ throwIn='subscriber';equal((await r.navigate('/a')).status,'committed');ok(codes.length&&codes.every(c=>c==='effect-error'),'subscriber failures reported');equal(location.pathname,'/a');
+ codes.length=0;throwIn='dispose';equal((await r.navigate('/b')).status,'committed');equal(codes,['effect-error']);
+ codes.length=0;throwIn='after';const result=await r.navigate('/people/1');equal(result.status,'error');equal(result.error.code,'effect-error');equal(result.commitStarted,true);equal(location.pathname,'/people/1');ok(!result.error.message.includes('secret'),'no exception text');
+});
+await test('destroy rejects queued work and supersedes unlocked work; start() after destroy is rejected',async()=>{
+ const r=make({prepare(ctx){return ctx.to.path==='/b'?new Promise(()=>{}):{commit(){}};}});await r.start();
+ const preparing=r.navigate('/b');equal(r.getSnapshot().phase,'preparing');await r.destroy();equal((await preparing).status,'superseded');equal(location.pathname,'/');
+ const hold=gate(),entered=gate();const s=make({prepare(ctx){return{async commit(){if(ctx.to.path==='/a'){entered.resolve();await hold.promise;}}};}});await s.start();
+ const active=s.navigate('/a');await entered.promise;const queued=s.navigate('/b');const destroyed=s.destroy();
+ const q=await queued;equal(q.status,'rejected');equal(q.error.code,'destroyed');hold.resolve();await destroyed;equal((await active).error.code,'destroyed');equal(location.pathname,'/a');
+ const fresh=make();await fresh.destroy();equal((await fresh.start()).error.code,'destroyed');equal((await fresh.ready()).error.code,'destroyed');
+});
+await test('Back onto a URL outside basePath is rejected and leaves history unowned',async()=>{
+ history.replaceState(null,'','/elsewhere');history.pushState(null,'','/console/');const r=make({basePath:'/console/'});await r.start();
+ const error=gate();r.config({onError(e){error.resolve(e);}});history.back();equal((await error.promise).code,'outside-base');await frame();
+ const s=r.getSnapshot();equal(s.phase,'error');equal(s.historyOwnership,'unowned');equal(s.current.pathname,'/console/');equal(location.pathname,'/elsewhere');
+});
+await test('a Back whose prepare() fails is walked back instead of leaving the URL changed',async()=>{
+ const r=make();await r.start();await r.navigate('/a');await r.navigate('/b');const length=history.length;
+ r.config({prepare(){throw Error('secret');}});const error=gate();r.config({onError(e){error.resolve(e);}});history.back();equal((await error.promise).code,'prepare-error');
+ await waitUntil(()=>location.pathname==='/b');await frame();equal(location.pathname,'/b');equal(history.length,length);equal(r.getSnapshot().current.path,'/b');equal(r.getSnapshot().phase,'error');
+ r.config({prepare(){return{commit(){}};}});const pending=next(r,s=>s.current.path==='/a');history.back();await pending;equal(location.pathname,'/a');
+});
 window.__suite={names:tests.map(t=>t.name),run};

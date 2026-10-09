@@ -6,3 +6,4 @@
 - VERIFIED: Node cannot reach the coordinator without a real Window; make coverage merges Node and Chromium V8 coverage of dist/index.js. Never fake a Window to raise Node coverage.
 - VERIFIED: peer runtimes are optional assets; make examples must run before examples/peers/ works offline.
 - VERIFIED: VAE must be the pinned upstream dependency. Do not invent attestations or change verifier scope to hide failures.
+- VERIFIED: docs/assets/defuss-dom-router.js is a committed copy of dist/index.js (make docs); tests/docs.test.mjs fails when stale. tools/docs-browser.mjs runs with reduced motion: smooth page scroll made Firefox clicks land on the floating header.

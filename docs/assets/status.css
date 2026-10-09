@@ -1,0 +1,19 @@
+/* Navigation outcome chips, shared by the landing page and the playground. The hues are literals because the theme
+   has no success/warning tokens; each pair is tuned for light and dark. */
+@layer components {
+  :root {
+    --ddr-green-bg: oklch(0.93 0.07 155); --ddr-green-fg: oklch(0.38 0.11 155); --ddr-amber-bg: oklch(0.94 0.08 85); --ddr-amber-fg: oklch(0.45 0.11 70);
+    --ddr-red-bg: oklch(0.93 0.05 25); --ddr-red-fg: oklch(0.48 0.18 27); --ddr-blue-bg: oklch(0.93 0.04 260); --ddr-blue-fg: oklch(0.45 0.16 262);
+  }
+  .dark {
+    --ddr-green-bg: oklch(0.33 0.07 155); --ddr-green-fg: oklch(0.87 0.1 155); --ddr-amber-bg: oklch(0.36 0.07 75); --ddr-amber-fg: oklch(0.9 0.1 85);
+    --ddr-red-bg: oklch(0.34 0.09 25); --ddr-red-fg: oklch(0.88 0.08 25); --ddr-blue-bg: oklch(0.33 0.08 262); --ddr-blue-fg: oklch(0.88 0.06 262);
+  }
+  .ddr-status { align-self: flex-start; padding: .125rem .625rem; border-radius: 999px; font-family: var(--font-mono); font-size: .75rem; font-weight: 600; background: var(--secondary); color: var(--secondary-foreground); }
+  .ddr-status[data-status="committed"] { background: var(--ddr-green-bg); color: var(--ddr-green-fg); }
+  .ddr-status[data-status="blocked"] { background: var(--ddr-amber-bg); color: var(--ddr-amber-fg); }
+  .ddr-status[data-status="rejected"], .ddr-status[data-status="error"] { background: var(--ddr-red-bg); color: var(--ddr-red-fg); }
+  .ddr-status[data-status="preparing"], .ddr-status[data-status="committing"] { background: var(--ddr-blue-bg); color: var(--ddr-blue-fg); }
+  .ddr-status[data-status="superseded"] { background: transparent; color: var(--muted-foreground); box-shadow: inset 0 0 0 1px var(--border); text-decoration: line-through; }
+  @media (forced-colors: active) { .ddr-status { border: 1px solid CanvasText; } }
+}
