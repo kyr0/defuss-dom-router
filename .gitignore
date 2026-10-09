@@ -18,3 +18,5 @@ coverage/
 .pytest_cache/
 .ruff_cache/
 .coverage
+.DS_Store
+.agents/SWARM_STATUS.yaml

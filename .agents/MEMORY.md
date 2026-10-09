@@ -1,9 +1,6 @@
 # Project memory
-- VERIFIED: the router has no production dependencies; rendering enters through prepare/commit. Native shells (defuss-tauri, separate repo) only call navigate().
-- VERIFIED: programmatic veto must occur before history writes; tracked popstate veto uses corrective history.go within one session.
-- VERIFIED: dist/ is pkgroll output; tmp/units/ is a test-only bundle of internal modules (tests/units.ts). Never export internals from the package for tests.
-- VERIFIED: browser tests run one fresh, fully loaded document per test. During document load, location navigations replace instead of push (HTML spec); WebKit throws SecurityError after 100 history.replaceState/pushState calls per 10 s per document.
-- VERIFIED: Node cannot reach the coordinator without a real Window; make coverage merges Node and Chromium V8 coverage of dist/index.js. Never fake a Window to raise Node coverage.
-- VERIFIED: peer runtimes are optional assets; make examples must run before examples/peers/ works offline.
-- VERIFIED: VAE must be the pinned upstream dependency. Do not invent attestations or change verifier scope to hide failures.
-- VERIFIED: docs/assets/defuss-dom-router.js is a committed copy of dist/index.js (make docs); tests/docs.test.mjs fails when stale. tools/docs-browser.mjs runs with reduced motion: smooth page scroll made Firefox clicks land on the floating header.
+- VERIFIED[tests]: tmp/units/ (tests/units.ts) is the only way tests reach internal modules; never export internals from the package for tests BC the public surface is the contract tests/package.test.mjs checks.
+- VERIFIED[tests/browser]: one fresh, fully loaded document per test BC during document load location navigations replace instead of push (HTML spec).
+- VERIFIED[tests/browser@webkit]: WebKit throws SecurityError after 100 history.replaceState/pushState calls per 10 s per document BC observed in the e2e matrix; a shared document would hit it.
+- VERIFIED[tools/docs-browser.mjs]: the site e2e runs with reducedMotion 'reduce' BC with smooth page scroll a Firefox click inside the demo frame landed on the floating header (2 of 9 runs failed, 5 of 5 pass after).
+- VERIFIED[docs/demo]: demo screens show measured or session values, never invented figures BC review found fabricated report statistics on the Reports screen; it now counts the session's log.
